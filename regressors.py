@@ -80,7 +80,7 @@ class Regressor:
         x_forecast = pd.DataFrame(final_df.iloc[-1,interval_forecast:].tolist(), index=x_train.columns).T
         forecasted_days = []
         pred = multi_model.predict(x_forecast)
-        print(pred)
+        # print(pred)
         return pred[0]
 
 if __name__ == "__main__":
@@ -112,5 +112,5 @@ if __name__ == "__main__":
 
     df = preprocess_data(fetch_data())
     f, r, i = reg.ARIMA(df, 7)
-    print(i)
+    # print(i)
     xgm = reg.XGBoost_mod(df, 7)

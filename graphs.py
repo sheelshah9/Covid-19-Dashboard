@@ -91,7 +91,7 @@ class Graphs:
                     direction="down",
                     pad={"r": 10, "t": 10},
                     showactive=True,
-                    x=0.09,
+                    x=0.15,
                     xanchor="left",
                     y=1.2,
                     yanchor="top"
@@ -116,7 +116,7 @@ class Graphs:
         grouped_df = grouped_df.groupby(['Province_State']).sum()
         grouped_df = grouped_df.drop(grouped_df.columns[:-1], axis=1)
         grouped_df = grouped_df.drop([x for x in grouped_df.index.tolist() if x not in Graphs.us_state_abbrev])
-        print(grouped_df)
+        # print(grouped_df)
         # print(grouped_df.loc[-1].astype(float).tolist())
         fig = go.Figure(data=go.Choropleth(
             locations=[Graphs.us_state_abbrev[x] for x in grouped_df.index.tolist()],  # Spatial coordinates
@@ -176,7 +176,7 @@ class Graphs:
             annotations=[
                 dict(text="State:", showarrow=False,
                      x=0, y=1.13, yref="paper", align="left")
-            ]
+            ], plot_bgcolor='rgb(255,255,255)'
         )
 
         return fig
