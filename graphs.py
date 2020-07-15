@@ -80,12 +80,17 @@ class Graphs:
                     buttons=list([
                         dict(label="Arima",
                              method="update",
-                             args=[{"visible": [True, True, True, False, False, False]}]
+                             args=[{"visible": [True, True, True, False, False, False, False, False, False]}]
                              ),
                         dict(
                             label="XGBoost",
                             method="update",
-                            args=[{"visible": [False, False, False, True, True, True]}]
+                            args=[{"visible": [False, False, False, True, True, True, False, False, False]}]
+                        ),
+                        dict(
+                            label="LSTM",
+                            method="update",
+                            args=[{"visible": [False, False, False, False, False, False, True, True, True]}]
                         )
                     ]),
                     direction="down",

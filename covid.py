@@ -23,11 +23,16 @@ def forecast_daily_cases(grouped_df, daily_df):
     #     pickle.dump([forecasted_days_xg, real_xg, intervals_xg], fp)
     with open(pred_path+'forecast_daily_cases_xgboost', 'rb') as fp:
         forecasted_days_xg, real_xg, intervals_xg = pickle.load(fp)
+
+    with open(pred_path+'forecast_daily_cases_lstm', 'rb') as fp:
+        forecasted_days_lstm, real_lstm, intervals_lstm = pickle.load(fp)
+
     ts = ts.drop(ts.columns[1:39], axis=1)
 
     data = []
     flag = True
-    for forecasted_days, real, intervals in zip([forecasted_days_arima, forecasted_days_xg], [real_arima, real_xg], [intervals_arima, intervals_xg]):
+    forecast_all, real_all, interval_all = [forecasted_days_arima, forecasted_days_xg, forecasted_days_lstm], [real_arima, real_xg, real_lstm], [intervals_arima, intervals_xg, intervals_lstm]
+    for forecasted_days, real, intervals in zip(forecast_all, real_all, interval_all):
         upper_bound = go.Scatter(
             name="Upper Bound",
             x=ts.columns.to_list() + forecasted_days,
@@ -82,12 +87,17 @@ def forecast_total_cases(grouped_df, daily_df):
     #     pickle.dump([forecasted_days_xg, real_xg, intervals_xg], fp)
     with open(pred_path+'forecast_total_cases_xgboost', 'rb') as fp:
         forecasted_days_xg, real_xg, intervals_xg = pickle.load(fp)
+
+    with open(pred_path+'forecast_total_cases_lstm', 'rb') as fp:
+        forecasted_days_lstm, real_lstm, intervals_lstm = pickle.load(fp)
+
     ts = ts.drop(ts.columns[1:39], axis=1)
 
     data = []
     flag = True
-    for forecasted_days, real, intervals in zip([forecasted_days_arima, forecasted_days_xg], [real_arima, real_xg],
-                                                [intervals_arima, intervals_xg]):
+    forecast_all, real_all, interval_all = [forecasted_days_arima, forecasted_days_xg, forecasted_days_lstm], [
+        real_arima, real_xg, real_lstm], [intervals_arima, intervals_xg, intervals_lstm]
+    for forecasted_days, real, intervals in zip(forecast_all, real_all, interval_all):
         upper_bound = go.Scatter(
             name="Upper Bound",
             x=ts.columns.to_list() + forecasted_days,

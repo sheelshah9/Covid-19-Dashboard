@@ -5,6 +5,9 @@ from sklearn.multioutput import MultiOutputRegressor
 import numpy as np
 import datetime
 import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import LSTM, Dropout, Dense
 
 class Regressor:
     def __int__(self):
@@ -82,6 +85,53 @@ class Regressor:
         pred = multi_model.predict(x_forecast)
         # print(pred)
         return pred[0]
+
+    def LSTM(self, daily_df, interval_forecast, lookback=7):
+        scaler = MinMaxScaler()
+        train = daily_df.loc['Total'].tolist()
+        train = np.array(train).reshape((-1, 1))
+        train = scaler.fit_transform(train)
+        train = train.ravel()
+        x_train, y_train = [], []
+        for i in range(len(train) - lookback -interval_forecast - 1):
+            x = train[i:i + lookback]
+            x_train.append(x)
+            y_train.append(train[i + lookback:i + lookback + interval_forecast])
+
+        x_train, y_train = np.array(x_train), np.array(y_train)
+        x_train = x_train.reshape((x_train.shape[0], x_train.shape[1], 1))
+        model = Sequential()
+        model.add(LSTM(50, input_shape=(lookback, 1)))
+        # model.add(LSTM(50, activation='relu'))
+        # model.add(Dropout(0.2))
+        model.add(Dense(interval_forecast))
+
+        model.compile(loss='mean_squared_error', optimizer='adam')
+        y_hat = []
+        for _ in range(20):
+            model.fit(x_train, y_train, epochs=100, verbose=0, shuffle=True)
+            x_test = np.array(y_train[-1]).reshape((1, x_train.shape[1], 1))
+            y_hat.append(scaler.inverse_transform(model.predict(x_test)))
+
+        y_hat = np.array(y_hat).reshape((20, interval_forecast))
+        intervals = []
+        low, high = [], []
+        pred = []
+        for i in range(interval_forecast):
+            low.append(y_hat[:,i].min())
+            high.append(y_hat[:,i].max())
+            pred.append(y_hat[:,i].mean())
+        intervals = np.array([low, high])
+
+        last_day = daily_df.columns[-1]
+        forecasted_day = datetime.datetime.strptime(last_day, '%d, %b %Y')
+        forecasted_days = []
+        for i in range(1, interval_forecast + 1):
+            temp = forecasted_day + datetime.timedelta(i)
+            forecasted_days.append(temp.strftime("%d, %b %Y"))
+
+        return forecasted_days, np.array(pred), intervals
+
 
 if __name__ == "__main__":
     reg = Regressor()
