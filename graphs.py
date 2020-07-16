@@ -1,4 +1,5 @@
 import plotly.graph_objects as go
+import datetime
 
 
 class Graphs:
@@ -64,7 +65,7 @@ class Graphs:
     def __int__(self):
         pass
 
-    def draw_graph_daily_increase(self, data):
+    def draw_graph_daily_increase(self, data, y_max):
         layout = go.Layout(
             yaxis=dict(title='No. of cases reported daily'),
             title='Covid-19 Daily increase projection',
@@ -111,6 +112,14 @@ class Graphs:
                      x=0, y=1.13, yref="paper", align="left")
             ]
         )
+
+        fig.add_shape(
+            {"x0": datetime.date.today().strftime("%d, %b %Y"), "x1": datetime.date.today().strftime("%d, %b %Y"),
+             "y0": 0, "y1": y_max,
+             "type": "line", "line": {"width": 2, "dash": "dot"}})
+        fig.add_trace(
+            go.Scatter(x=[datetime.date.today().strftime("%d, %b %Y")], y=[y_max], text=["today"], mode="text",
+                       line={"color": "green"}, showlegend=False))
 
         return fig
 

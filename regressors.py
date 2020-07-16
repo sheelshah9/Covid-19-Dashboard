@@ -32,7 +32,7 @@ class Regressor:
         forecasted_day = datetime.datetime.strptime(last_day, '%d, %b %Y')
         forecasted_days = []
         for i in range(1, interval_forecast + 1):
-            temp = forecasted_day + datetime.timedelta(i)
+            temp = forecasted_day + datetime.timedelta(days=i)
             forecasted_days.append(temp.strftime("%d, %b %Y"))
 
         real, _, intervals = model.forecast(interval_forecast)
@@ -45,25 +45,38 @@ class Regressor:
         # Day of Week, Day of month, Month, Day of Year, Week of Year
         X = [[x.isoweekday(), x.day, x.month, int(x.strftime("%j")), int(x.strftime("%W"))] for i,x in enumerate(X)]
         Y = daily_df.loc[row].tolist()
-        x_train, y_train, x_test, y_test = train_test_split(X,Y, test_size=0.1, random_state=10)
-        model = xgb.XGBRegressor(n_estimators=300, early_stopping_rounds=50, verbosity=0)
-        x_train, x_test, y_train, y_test = pd.DataFrame(x_train), pd.DataFrame(y_train), pd.DataFrame(x_test), pd.DataFrame(y_test)
-        model.fit(x_train, y_train, eval_set=[(x_train, y_train), (x_test, y_test)])
+        y_hat = []
 
         last_day = daily_df.columns[-1]
         forecasted_day = datetime.datetime.strptime(last_day, '%d, %b %Y')
         forecasted_days = []
         for i in range(1, interval_forecast + 1):
-            temp = forecasted_day + datetime.timedelta(i)
+            temp = forecasted_day + datetime.timedelta(days=i)
             forecasted_days.append(temp.strftime("%d, %b %Y"))
 
         forecasted_days_ret = forecasted_days
         forecasted_days = [datetime.datetime.strptime(x, '%d, %b %Y') for x in forecasted_days]
         # Day of Week, Day of month, Month, Day of Year, Week of Year
-        forecasted_days = [[x.isoweekday(), x.day, x.month, int(x.strftime("%j")), int(x.strftime("%W"))] for i, x in enumerate(forecasted_days)]
-        preds = np.array(model.predict(pd.DataFrame(forecasted_days)))
-        rmse = model.evals_result()['validation_1']['rmse'][-1]
-        return forecasted_days_ret, preds, np.array([preds-rmse, preds+rmse])
+        forecasted_days = [[x.isoweekday(), x.day, x.month, int(x.strftime("%j")), int(x.strftime("%W"))] for i, x in
+                           enumerate(forecasted_days)]
+
+        for _ in range(5):
+            x_train, y_train, x_test, y_test = train_test_split(X,Y, test_size=0.2)
+            model = xgb.XGBRegressor(n_estimators=300, early_stopping_rounds=50, verbosity=0)
+            x_train, x_test, y_train, y_test = pd.DataFrame(x_train), pd.DataFrame(y_train), pd.DataFrame(x_test), pd.DataFrame(y_test)
+            model.fit(x_train, y_train, eval_set=[(x_train, y_train), (x_test, y_test)])
+            pred = np.array(model.predict(pd.DataFrame(forecasted_days)))
+            y_hat.append(pred)
+
+        low, high = [], []
+        preds = []
+        y_hat = np.array(y_hat)
+        for i in range(interval_forecast):
+            low.append(y_hat[:, i].min())
+            high.append(y_hat[:, i].max())
+            preds.append(y_hat[:, i].mean())
+        intervals = np.array([low, high])
+        return forecasted_days_ret, np.array(preds), intervals
 
     def XGBoost_mod(self, daily_df, interval_forecast):
         test_df = daily_df.loc['Total'].T
@@ -127,7 +140,7 @@ class Regressor:
         forecasted_day = datetime.datetime.strptime(last_day, '%d, %b %Y')
         forecasted_days = []
         for i in range(1, interval_forecast + 1):
-            temp = forecasted_day + datetime.timedelta(i)
+            temp = forecasted_day + datetime.timedelta(days=i)
             forecasted_days.append(temp.strftime("%d, %b %Y"))
 
         return forecasted_days, np.array(pred), intervals
