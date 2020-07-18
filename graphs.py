@@ -1,5 +1,7 @@
 import plotly.graph_objects as go
 import datetime
+import dash_html_components as html
+import dash_bootstrap_components as dbc
 
 
 class Graphs:
@@ -65,76 +67,55 @@ class Graphs:
     def __int__(self):
         pass
 
-    def draw_graph_daily_increase(self, data, y_max):
-        layout = go.Layout(
-            yaxis=dict(title='No. of cases reported daily'),
-            title='Covid-19 Daily increase projection',
-            showlegend=False)
+    @staticmethod
+    def draw_graph_daily_increase(df):
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            name="Lower Bound",
+            x=df.index,
+            y=df['interval_low'],
+            marker=dict(color="#444"),
+            line=dict(width=0),
+            mode='lines'
+        ))
+        fig.add_trace(go.Scatter(
+            name="Prediction",
+            x=df.index,
+            y=df['forecast'],
+            mode='lines',
+            line=dict(color='rgb(31, 119, 180)'),
+            fillcolor='rgba(68, 68, 68, 0.3)',
+            fill='tonexty'
+        ))
+        fig.add_trace(go.Scatter(
+            name="Upper Bound",
+            x=df.index,
+            y=df['interval_high'],
+            mode='lines',
+            marker=dict(color="#444"),
+            line=dict(width=0),
+            fillcolor='rgba(68, 68, 68, 0.3)',
+            fill='tonexty'
+        ))
+        fig.add_trace(go.Bar(x=df.index, y=df['Total'], name='Actual Cases', marker_color='red'))
 
-        fig = go.Figure(data=data, layout=layout)
-
-        # Add dropdown
-        fig.update_layout(
-            updatemenus=[
-                dict(
-                    active=0,
-                    buttons=list([
-                        dict(label="Arima",
-                             method="update",
-                             args=[{"visible": [True, True, True, False, False, False, False, False, False]}]
-                             ),
-                        dict(
-                            label="XGBoost",
-                            method="update",
-                            args=[{"visible": [False, False, False, True, True, True, False, False, False]}]
-                        ),
-                        dict(
-                            label="LSTM",
-                            method="update",
-                            args=[{"visible": [False, False, False, False, False, False, True, True, True]}]
-                        )
-                    ]),
-                    direction="down",
-                    pad={"r": 10, "t": 10},
-                    showactive=True,
-                    x=0.15,
-                    xanchor="left",
-                    y=1.2,
-                    yanchor="top"
-                ),
-            ]
-        )
-
-        # Add annotation
-        fig.update_layout(
-            annotations=[
-                dict(text="Forecast Method:", showarrow=False,
-                     x=0, y=1.13, yref="paper", align="left")
-            ]
-        )
-
-        fig.add_shape(
-            {"x0": datetime.date.today().strftime("%d, %b %Y"), "x1": datetime.date.today().strftime("%d, %b %Y"),
-             "y0": 0, "y1": y_max,
-             "type": "line", "line": {"width": 2, "dash": "dot"}})
+        fig.add_shape({"x0": datetime.date.today(), "x1": datetime.date.today(), "y0": 0, "y1": df["forecast"].max(),
+                       "type": "line", "line": {"width": 2, "dash": "dot"}})
         fig.add_trace(
-            go.Scatter(x=[datetime.date.today().strftime("%d, %b %Y")], y=[y_max], text=["today"], mode="text",
-                       line={"color": "green"}, showlegend=False))
+            go.Scatter(x=[datetime.date.today()], y=[df["forecast"].max()], text=["today"], mode="text",
+                       line={"color": "green"},
+                       showlegend=False))
 
         return fig
 
-
-    def draw_total_state_map(self, df):
-        grouped_df = df.drop(['UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Admin2', 'Country_Region', 'Lat', 'Long_'],
-                             axis=1)
-        grouped_df = grouped_df.groupby(['Province_State']).sum()
-        grouped_df = grouped_df.drop(grouped_df.columns[:-1], axis=1)
-        grouped_df = grouped_df.drop([x for x in grouped_df.index.tolist() if x not in Graphs.us_state_abbrev])
+    @staticmethod
+    def draw_total_state_map(df):
+        grouped_df = df.drop([x for x in df.columns.tolist() if x not in Graphs.us_state_abbrev], axis=1)
         # print(grouped_df)
         # print(grouped_df.loc[-1].astype(float).tolist())
         fig = go.Figure(data=go.Choropleth(
-            locations=[Graphs.us_state_abbrev[x] for x in grouped_df.index.tolist()],  # Spatial coordinates
-            z=grouped_df.iloc[:, -1].astype(float),  # Data to be color-coded
+            locations=[Graphs.us_state_abbrev[x] for x in grouped_df.columns.tolist()],  # Spatial coordinates
+            z=grouped_df.iloc[-1, :].astype(float),  # Data to be color-coded
             locationmode='USA-states',  # set of locations match entries in `locations`
             colorscale='Reds',
             colorbar_title="Millions USD",
@@ -147,7 +128,7 @@ class Graphs:
 
         return fig
 
-    #TODO
+    # TODO
     def draw_graph_state_wise(self, states, data):
         layout = go.Layout(
             yaxis=dict(title='No. of cases reported daily - Statewise'),
@@ -158,14 +139,14 @@ class Graphs:
 
         # Dynamically generate dropdowns
         dropdowns = []
-        visible_array = [False]*len(states)*3
-        for i,s in enumerate(states):
+        visible_array = [False] * len(states) * 3
+        for i, s in enumerate(states):
             vis_arr = visible_array.copy()
-            vis_arr[i*3:i*3+3] = [True]*3
+            vis_arr[i * 3:i * 3 + 3] = [True] * 3
             temp = dict(label=s,
-                 method="update",
-                 args=[{"visible": vis_arr}]
-                 )
+                        method="update",
+                        args=[{"visible": vis_arr}]
+                        )
             dropdowns.append(temp)
 
         # Add dropdown
@@ -194,3 +175,15 @@ class Graphs:
         )
 
         return fig
+
+    def draw_panel(self, df):
+        total_cases = df.sum()
+        new_case_today = df.iloc[-1]
+        peak_date, peak_cases = df.argmax(), df.max()
+        panel = html.Div([
+            html.H4(df.columns.tolist()),
+            dbc.Card(body=True, className="text-white bg-primary", children=[
+                html.H6("Total Cases:", style={'color':'white'})
+
+            ])
+        ])

@@ -1,23 +1,33 @@
 import pandas as pd
-import datetime
 
-def fetch_data():
-    url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
-    df = pd.read_csv(url)
-    return df
+class Data():
 
-def preprocess_data(df):
-    grouped_df = df.drop(['UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Admin2', 'Country_Region', 'Lat', 'Long_'], axis=1)
-    grouped_df = grouped_df.groupby(['Province_State']).sum()
-    grouped_df.loc['Total'] = grouped_df.sum()
-    grouped_df.columns = [datetime.datetime.strptime(x, '%m/%d/%y').strftime("%d, %b %Y") for x in grouped_df.columns]
+    def fetch_data(self):
+        url_us_cases = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
+        url_us_deaths = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"
+        self.df_us_cases = pd.read_csv(url_us_cases)
+        self.df_us_deaths = pd.read_csv(url_us_deaths)
 
-    daily_df = grouped_df.copy()
+    @staticmethod
+    def preprocess_data(df):
+        grouped_df = df.drop(['UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Admin2', 'Country_Region', 'Lat', 'Long_'], axis=1)
+        grouped_df = grouped_df.groupby(['Province_State']).sum()
+        grouped_df.loc['Total'] = grouped_df.sum()
+        grouped_df = grouped_df.T
+        # If there are less than 10 new cases in last 7 days, we omit that state
+        grouped_df = grouped_df.loc[:, (grouped_df.iloc[-7:, :] > 10).all(axis=0)]
+        grouped_df.index = pd.to_datetime(grouped_df.index, infer_datetime_format=True)
+        return grouped_df
 
-    for x, y in enumerate(daily_df.columns[::-1]):
-        if x == len(daily_df.columns) - 1:
-            continue
-        else:
-            daily_df[y] = daily_df[y] - daily_df[daily_df.columns[~x - 1]]
+    @staticmethod
+    def daily_data(df):
+        new_df = df.diff()
+        new_df = new_df.iloc[1:, :]
+        return new_df
 
-    return grouped_df, daily_df
+if __name__ == "__main__":
+    d = Data()
+    d.fetch_data()
+    x = d.preprocess_data(d.df_us_cases)
+    print(x)
+    # print(d.daily_data(x))

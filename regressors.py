@@ -10,59 +10,67 @@ from tensorflow.keras import Sequential
 from tensorflow.keras.layers import LSTM, Dropout, Dense
 
 class Regressor:
-    def __int__(self):
-        pass
+    def __init__(self, daily_df, forecast_interval):
+        self.daily_df = daily_df
+        self.forecast_interval = forecast_interval
 
-    def ARIMA(self, daily_df, interval_forecast, row='Total'):
-        # print(np.array(daily_df.loc[row].tolist(), dt)
-        params = [(i,j,k) for i in range(5,7) for j in range(3) for k in range(2)]
+    @staticmethod
+    def generate_dates(start, interval_forecast):
+        index = pd.date_range(start, periods=interval_forecast+1, freq='D')
+        return index[1:]
+
+    def ARIMA(self, row='Total'):
+        params = [(i,j,k) for i in range(5,7) for j in range(3) for k in range(3)]
         min_aic = float("inf")
         final_model = None
+        final_param = (6,2,2)
         for param in params:
             try:
-                model = ARIMA(np.array(daily_df.loc[row].tolist(), dtype=np.float32), order=param)
+                model = ARIMA(np.array(self.daily_df[row].tolist(), dtype=np.float32), order=param)
                 model = model.fit()
                 if model.aic<min_aic:
                     min_aic=model.aic
                     final_model = model
+                    final_param = param
+                # break
             except Exception as e:
                 continue
+
         model = final_model
-        last_day = daily_df.columns[-1]
-        forecasted_day = datetime.datetime.strptime(last_day, '%d, %b %Y')
-        forecasted_days = []
-        for i in range(1, interval_forecast + 1):
-            temp = forecasted_day + datetime.timedelta(days=i)
-            forecasted_days.append(temp.strftime("%d, %b %Y"))
+        preds = model.predict(start = final_param[1], end = len(self.daily_df.index)-1)
+        preds = np.array(preds) + self.daily_df[row].tolist()[-final_param[1]]
 
-        real, _, intervals = model.forecast(interval_forecast)
-        print(type(intervals))
-        return forecasted_days, real, np.array([intervals[:,0].tolist(), intervals[:,1].tolist()])
+        real, _, intervals = model.forecast(self.forecast_interval)
+        preds = np.append(preds, real)
 
-    def XGBoost(self, daily_df, interval_forecast, row='Total'):
-        X = daily_df.columns.tolist()
-        X = [datetime.datetime.strptime(x, '%d, %b %Y') for x in X]
+        forecasted_days = self.generate_dates(self.daily_df.index[-1], self.forecast_interval)
+        preds = pd.DataFrame(data=preds, columns=["forecast"], index=self.daily_df.index[final_param[1]:].union(forecasted_days))
+        interval_low = pd.DataFrame(data=intervals[:,0], columns=["interval_low"], index=forecasted_days)
+        interval_high = pd.DataFrame(data=intervals[:,1], columns=["interval_high"], index=forecasted_days)
+
+        self.daily_df = pd.concat([self.daily_df, preds, interval_low, interval_high], axis=1)
+
+        return self.daily_df
+
+    def XGBoost(self, row='Total'):
+        X = self.daily_df.index.tolist()
+        # X = [datetime.datetime.strptime(x, '%d, %b %Y') for x in X]
         # Day of Week, Day of month, Month, Day of Year, Week of Year
         X = [[x.isoweekday(), x.day, x.month, int(x.strftime("%j")), int(x.strftime("%W"))] for i,x in enumerate(X)]
-        Y = daily_df.loc[row].tolist()
+        Y = self.daily_df[row].tolist()
         y_hat = []
 
-        last_day = daily_df.columns[-1]
-        forecasted_day = datetime.datetime.strptime(last_day, '%d, %b %Y')
-        forecasted_days = []
-        for i in range(1, interval_forecast + 1):
-            temp = forecasted_day + datetime.timedelta(days=i)
-            forecasted_days.append(temp.strftime("%d, %b %Y"))
+        forecasted_days = self.generate_dates(self.daily_df.index[-1], self.forecast_interval)
+        forecasted_days_ret = forecasted_days.copy()
 
-        forecasted_days_ret = forecasted_days
-        forecasted_days = [datetime.datetime.strptime(x, '%d, %b %Y') for x in forecasted_days]
         # Day of Week, Day of month, Month, Day of Year, Week of Year
         forecasted_days = [[x.isoweekday(), x.day, x.month, int(x.strftime("%j")), int(x.strftime("%W"))] for i, x in
                            enumerate(forecasted_days)]
+        forecasted_days = np.concatenate([X, forecasted_days])
 
         for _ in range(5):
-            x_train, y_train, x_test, y_test = train_test_split(X,Y, test_size=0.2)
-            model = xgb.XGBRegressor(n_estimators=300, early_stopping_rounds=50, verbosity=0)
+            x_train, y_train, x_test, y_test = train_test_split(X, Y, test_size=0.2)
+            model = xgb.XGBRegressor(n_estimators=50, early_stopping_rounds=50, verbosity=0)
             x_train, x_test, y_train, y_test = pd.DataFrame(x_train), pd.DataFrame(y_train), pd.DataFrame(x_test), pd.DataFrame(y_test)
             model.fit(x_train, y_train, eval_set=[(x_train, y_train), (x_test, y_test)])
             pred = np.array(model.predict(pd.DataFrame(forecasted_days)))
@@ -71,12 +79,19 @@ class Regressor:
         low, high = [], []
         preds = []
         y_hat = np.array(y_hat)
-        for i in range(interval_forecast):
+        for i in range(len(forecasted_days)):
             low.append(y_hat[:, i].min())
             high.append(y_hat[:, i].max())
             preds.append(y_hat[:, i].mean())
-        intervals = np.array([low, high])
-        return forecasted_days_ret, np.array(preds), intervals
+
+        preds = pd.DataFrame(data=preds, columns=["forecast"],
+                             index=self.daily_df.index.union(forecasted_days_ret))
+        interval_low = pd.DataFrame(data=low, columns=["interval_low"], index=self.daily_df.index.union(forecasted_days_ret))
+        interval_high = pd.DataFrame(data=high, columns=["interval_high"], index=self.daily_df.index.union(forecasted_days_ret))
+
+        self.daily_df = pd.concat([self.daily_df, preds, interval_low, interval_high], axis=1)
+
+        return self.daily_df
 
     def XGBoost_mod(self, daily_df, interval_forecast):
         test_df = daily_df.loc['Total'].T
@@ -99,81 +114,87 @@ class Regressor:
         # print(pred)
         return pred[0]
 
-    def LSTM(self, daily_df, interval_forecast, lookback=7):
+    def LSTM(self, lookback=7, row='Total'):
+        num_estimators = 20
         scaler = MinMaxScaler()
-        train = daily_df.loc['Total'].tolist()
+        train = self.daily_df[row].tolist()
         train = np.array(train).reshape((-1, 1))
         train = scaler.fit_transform(train)
         train = train.ravel()
+
         x_train, y_train = [], []
-        for i in range(len(train) - lookback -interval_forecast - 1):
+        for i in range(len(train) - lookback - self.forecast_interval + 1):
             x = train[i:i + lookback]
             x_train.append(x)
-            y_train.append(train[i + lookback:i + lookback + interval_forecast])
+            y_train.append(train[i + lookback:i + lookback + self.forecast_interval])
+
+        train_pred = []
+        for i in range(len(train)-lookback+1):
+            train_pred.append(train[i:i+lookback])
+
+        train_pred = np.array(train_pred)
+        train_pred = train_pred.reshape((train_pred.shape[0], train_pred.shape[1], 1))
 
         x_train, y_train = np.array(x_train), np.array(y_train)
         x_train = x_train.reshape((x_train.shape[0], x_train.shape[1], 1))
+        print(x_train.shape)
         model = Sequential()
         model.add(LSTM(50, input_shape=(lookback, 1)))
         # model.add(LSTM(50, activation='relu'))
         # model.add(Dropout(0.2))
-        model.add(Dense(interval_forecast))
+        model.add(Dense(self.forecast_interval))
 
         model.compile(loss='mean_squared_error', optimizer='adam')
         y_hat = []
-        for _ in range(20):
+        for _ in range(num_estimators):
             model.fit(x_train, y_train, epochs=100, verbose=0, shuffle=True)
             x_test = np.array(y_train[-1]).reshape((1, x_train.shape[1], 1))
+            x_test = np.concatenate([train_pred, x_test])
             y_hat.append(scaler.inverse_transform(model.predict(x_test)))
 
-        y_hat = np.array(y_hat).reshape((20, interval_forecast))
-        intervals = []
+        y_hat = np.array(y_hat)
+        ans = []
+        for i in range(num_estimators):
+            ans.append(y_hat[i, 0:y_hat.shape[1]:lookback].ravel())
+        ans = np.array(ans)
+        print(ans.shape)
         low, high = [], []
         pred = []
-        for i in range(interval_forecast):
-            low.append(y_hat[:,i].min())
-            high.append(y_hat[:,i].max())
-            pred.append(y_hat[:,i].mean())
-        intervals = np.array([low, high])
+        for i in range(ans.shape[1]):
+            low.append(max(ans[:, i].min(), 0))
+            high.append(ans[:, i].max())
+            pred.append(max(ans[:, i].mean(), 0))
 
-        last_day = daily_df.columns[-1]
-        forecasted_day = datetime.datetime.strptime(last_day, '%d, %b %Y')
-        forecasted_days = []
-        for i in range(1, interval_forecast + 1):
-            temp = forecasted_day + datetime.timedelta(days=i)
-            forecasted_days.append(temp.strftime("%d, %b %Y"))
 
-        return forecasted_days, np.array(pred), intervals
+        forecasted_days = self.generate_dates(self.daily_df.index[-1], self.forecast_interval)
+        preds = pd.DataFrame(data=pred, columns=["forecast"],
+                             index=self.daily_df.index[lookback+(train_pred.shape[0])%lookback-1:].union(forecasted_days))
+        interval_low = pd.DataFrame(data=low, columns=["interval_low"], index=self.daily_df.index[lookback+(train_pred.shape[0])%lookback-1:].union(forecasted_days))
+        interval_high = pd.DataFrame(data=high, columns=["interval_high"], index=self.daily_df.index[lookback+(train_pred.shape[0])%lookback-1:].union(forecasted_days))
+
+        self.daily_df = pd.concat([self.daily_df, preds, interval_low, interval_high], axis=1)
+        return self.daily_df
 
 
 if __name__ == "__main__":
-    reg = Regressor()
+
     import pandas as pd, datetime
+    from helper import Data
+    import matplotlib.pyplot as plt
 
-    def fetch_data():
-        url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
-        df = pd.read_csv(url)
-        return df
+    d = Data()
 
-
-    def preprocess_data(df):
-        grouped_df = df.drop(['UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Admin2', 'Country_Region', 'Lat', 'Long_'],
-                             axis=1)
-        grouped_df = grouped_df.groupby(['Province_State']).sum()
-        grouped_df.loc['Total'] = grouped_df.sum()
-
-        daily_df = grouped_df.copy()
-        daily_df.columns = [datetime.datetime.strptime(x, '%m/%d/%y').strftime("%d, %b %Y") for x in daily_df.columns]
-
-        for x, y in enumerate(daily_df.columns[::-1]):
-            if x == len(daily_df.columns) - 1:
-                continue
-            else:
-                daily_df[y] = daily_df[y] - daily_df[daily_df.columns[~x - 1]]
-
-        return daily_df
-
-    df = preprocess_data(fetch_data())
-    f, r, i = reg.ARIMA(df, 7)
-    # print(i)
-    xgm = reg.XGBoost_mod(df, 7)
+    d.fetch_data()
+    df = d.preprocess_data(d.df_us_cases)
+    df = d.daily_data(df)
+    reg = Regressor(df,7)
+    # df = reg.ARIMA()
+    # # print(i)
+    xgm = reg.LSTM()
+    # xgm['lstm_forecast'].plot('g')
+    # xgm['lstm_interval_low'].plot('r')
+    plt.plot(xgm.index, xgm['lstm_forecast'], 'g')
+    plt.plot(xgm.index, xgm['lstm_interval_low'], 'r')
+    plt.plot(xgm.index, xgm['lstm_interval_high'], 'y')
+    plt.bar(xgm.index, xgm['Total'])
+    plt.show()
