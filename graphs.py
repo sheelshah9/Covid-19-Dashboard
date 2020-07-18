@@ -183,7 +183,13 @@ class Graphs:
         panel = html.Div([
             html.H4(df.columns.tolist()),
             dbc.Card(body=True, className="text-white bg-primary", children=[
-                html.H6("Total Cases:", style={'color':'white'})
-
+                html.H6("Total Cases:", style={'color':'white'}),
+                html.H3("{:,}".format(total_cases), className='text-danger'),
+                html.H6("New Cases Today:", style={'color':'white'}),
+                html.H3("{:,}".format(new_case_today), className='text-danger'),
+                html.H6("Peak Day:", style={'color':'white'}),
+                html.H3(peak_date.isoformat(), className='text-danger'),
+                html.H6("With {:,} Cases".format(peak_cases))
             ])
         ])
+        return panel

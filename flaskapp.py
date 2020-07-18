@@ -31,8 +31,8 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LUX])
 server = app.server
 
 navbar = dbc.Nav(className="nav nav-pills", children=[
-    dbc.NavItem(dbc.NavLink([html.I(className="fa fa-github"), "  GitHub"], href="https://github.com/sheelshah9", active=True)),
-    dbc.NavItem(dbc.NavLink([html.I(className="fa fa-linkedin"), "  LinkedIn"], href="https://www.linkedin.com/in/sheelshah09/", active=True))
+    dbc.NavItem(dbc.NavLink([html.I(className="fa fa-github"), "  GitHub"], href="https://github.com/sheelshah9", active=True, target="_blank")),
+    dbc.NavItem(dbc.NavLink([html.I(className="fa fa-linkedin"), "  LinkedIn"], href="https://www.linkedin.com/in/sheelshah09/", active=True, target="_blank"))
 ])
 
 app.layout = dbc.Container(fluid=True, children=[
