@@ -6,6 +6,7 @@ import pandas as pd
 import pickle
 
 pred_path = "data/"
+models = ['ARIMA', 'XGBoost', 'LSTM']
 
 import dash_core_components as dcc
 import dash_html_components as html
@@ -22,7 +23,7 @@ daily_reg = Regressor(df, 7)
 arima_data = daily_reg.ARIMA()
 total_reg = Regressor(pre_df, 7)
 total_arima_data = total_reg.ARIMA()
-g = Graphs.draw_graph_daily_increase(arima_data)
+g = Graphs.draw_graph(arima_data)
 # total_data, y_max_total = forecast_total_cases(grouped_df, daily_df)
 # states, state_wise_data = forecast_state_wise(grouped_df, daily_df)
 # graph = Graphs()
@@ -35,6 +36,16 @@ navbar = dbc.Nav(className="nav nav-pills", children=[
     dbc.NavItem(dbc.NavLink([html.I(className="fa fa-linkedin"), "  LinkedIn"], href="https://www.linkedin.com/in/sheelshah09/", active=True, target="_blank"))
 ])
 
+dropdown_state = dbc.FormGroup([
+    html.H4("Select State"),
+    dcc.Dropdown(id="state", options=[{'label':x, 'value':x} for x in pre_df.columns.tolist()], value='Total')
+])
+
+dropdown_model = dbc.FormGroup([
+    html.H4("Select Forecast Method"),
+    dcc.Dropdown(id="method", options=[{'label':x, 'value':x} for x in models], value='ARIMA')
+])
+
 app.layout = dbc.Container(fluid=True, children=[
     #Header
     html.Br(),
@@ -44,19 +55,33 @@ app.layout = dbc.Container(fluid=True, children=[
 
     #Body
     dbc.Row([
+            dbc.Col(md=3, children=[
+                dropdown_state,
+                html.Br(), html.Br(),
+                dropdown_model,
+                html.Br(), html.Br(),
+                html.Div(id='out-panel')
+            ]),
             dbc.Col(md=9, children=[
             dbc.Col(html.H4("Forecast 10 days from today"), width={"size":6, "offset":3}),
             dbc.Tabs([
-                dbc.Tab([dcc.Graph(id="graph_daily_increase_US", figure=Graphs.draw_graph_daily_increase(arima_data)),
-                         dcc.Graph(id="Total_US", figure=Graphs.draw_graph_daily_increase(total_arima_data))],
-                        label="US projected cases", ),
-                dbc.Tab([dcc.Graph(id="State_wise", figure=Graphs.draw_graph_daily_increase(arima_data)),
-                         dcc.Graph(id="State_map", figure=Graphs.draw_total_state_map(pre_df))],
-                        label="State projections")
+                dbc.Tab([dcc.Graph(id="graph_daily_cases", figure=Graphs.draw_graph(arima_data)),
+                         dcc.Graph(id="graph_total_cases", figure=Graphs.draw_graph(total_arima_data))],
+                        label="Projected Cases", ),
+                dbc.Tab([dcc.Graph(id="graph_daily_deaths", figure=Graphs.draw_graph(arima_data)),
+                         dcc.Graph(id="graph_total_deaths", figure=Graphs.draw_graph(total_arima_data))],
+                        label="Projected Deaths", ),
+                dbc.Tab([dcc.Graph(id="State_map", figure=Graphs.draw_total_state_map(pre_df))],
+                        label="State Maps")
                     ])
                 ])
             ])
 ]   )
+
+@app.callback(output=Output("graph_daily_cases","figure"), inputs=[Input("state","value"), Input("method","value")])
+def plot_cases(state, method):
+    data = pd.read_csv(pred_path+"{}_{}.csv".format(state, method))
+    return Graphs.draw_graph(data)
 
 
 

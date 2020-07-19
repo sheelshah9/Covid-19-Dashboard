@@ -68,7 +68,7 @@ class Graphs:
         pass
 
     @staticmethod
-    def draw_graph_daily_increase(df):
+    def draw_graph(df, row='Total'):
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             name="Lower Bound",
@@ -97,7 +97,7 @@ class Graphs:
             fillcolor='rgba(68, 68, 68, 0.3)',
             fill='tonexty'
         ))
-        fig.add_trace(go.Bar(x=df.index, y=df['Total'], name='Actual Cases', marker_color='red'))
+        fig.add_trace(go.Bar(x=df.index, y=df[row], name='Actual Cases', marker_color='red'))
 
         fig.add_shape({"x0": datetime.date.today(), "x1": datetime.date.today(), "y0": 0, "y1": df["forecast"].max(),
                        "type": "line", "line": {"width": 2, "dash": "dot"}})

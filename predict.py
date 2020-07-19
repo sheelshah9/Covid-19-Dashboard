@@ -1,26 +1,31 @@
 from regressors import Regressor
 import pickle
-from helper import fetch_data, preprocess_data
+from helper import Data
 from graphs import Graphs
 import pandas as pd
 
-df = fetch_data()
-grouped_df, daily_df = preprocess_data(df)
+d = Data()
+
+d.fetch_data()
+total_df = d.preprocess_data(d.df_us_cases)
+daily_df = d.daily_data(total_df)
+daily_reg = Regressor(daily_df, 7)
+
 pred_path = "data/"
 
 reg = Regressor()
-forecasted_days_arima, real_arima, intervals_arima = reg.ARIMA(daily_df, interval_forecast=10)
-with open(pred_path+'forecast_daily_cases_arima', 'wb') as fp:
-    pickle.dump([forecasted_days_arima, real_arima, intervals_arima], fp)
+arima_daily_data = daily_reg.ARIMA()
+arima_daily_data.to_csv("Total_ARIMA.csv")
 
-forecasted_days_xg, real_xg, intervals_xg = reg.XGBoost(daily_df, interval_forecast=10)
-with open(pred_path+'forecast_daily_cases_xgboost', 'wb') as fp:
-    pickle.dump([forecasted_days_xg, real_xg, intervals_xg], fp)
+xg_daily_data = reg.XGBoost()
+xg_daily_data.to_csv("Total_XGBoost.csv")
 
-forecasted_days_lstm, real_lstm, intervals_lstm = reg.LSTM(daily_df, interval_forecast=7)
-with open(pred_path+'forecast_daily_cases_lstm', 'wb') as fp:
-    pickle.dump([forecasted_days_lstm, real_lstm, intervals_lstm], fp)
+lstm_daily_data = reg.LSTM()
+lstm_daily_data.to_csv("Total_LSTM.csv")
 
+total_reg = Regressor(total_df, 7)
+arima_total_data = total_reg.ARIMA()
+arima_total_data.to_csv("T")
 forecasted_days_arima, real_arima, intervals_arima = reg.ARIMA(grouped_df, interval_forecast=10)
 with open(pred_path+'forecast_total_cases_arima', 'wb') as fp:
     pickle.dump([forecasted_days_arima, real_arima, intervals_arima], fp)
