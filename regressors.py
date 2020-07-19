@@ -20,13 +20,14 @@ class Regressor:
         return index[1:]
 
     def ARIMA(self, row='Total'):
+        daily_df = self.daily_df.copy()
         params = [(i,j,k) for i in range(5,7) for j in range(3) for k in range(3)]
         min_aic = float("inf")
         final_model = None
         final_param = (6,2,2)
         for param in params:
             try:
-                model = ARIMA(np.array(self.daily_df[row].tolist(), dtype=np.float32), order=param)
+                model = ARIMA(np.array(daily_df[row].tolist(), dtype=np.float32), order=param)
                 model = model.fit()
                 if model.aic<min_aic:
                     min_aic=model.aic
@@ -37,30 +38,30 @@ class Regressor:
                 continue
 
         model = final_model
-        preds = model.predict(start = final_param[1], end = len(self.daily_df.index)-1)
-        preds = np.array(preds) + self.daily_df[row].tolist()[-final_param[1]]
+        preds = model.predict(start = final_param[1], end = len(daily_df.index)-1)
+        preds = np.array(preds) + daily_df[row].tolist()[-final_param[1]]
 
         real, _, intervals = model.forecast(self.forecast_interval)
         preds = np.append(preds, real)
 
-        forecasted_days = self.generate_dates(self.daily_df.index[-1], self.forecast_interval)
-        preds = pd.DataFrame(data=preds, columns=["forecast"], index=self.daily_df.index[final_param[1]:].union(forecasted_days))
+        forecasted_days = self.generate_dates(daily_df.index[-1], self.forecast_interval)
+        preds = pd.DataFrame(data=preds, columns=["forecast"], index=daily_df.index[final_param[1]:].union(forecasted_days))
         interval_low = pd.DataFrame(data=intervals[:,0], columns=["interval_low"], index=forecasted_days)
         interval_high = pd.DataFrame(data=intervals[:,1], columns=["interval_high"], index=forecasted_days)
 
-        self.daily_df = pd.concat([self.daily_df, preds, interval_low, interval_high], axis=1)
+        daily_df = pd.concat([daily_df, preds, interval_low, interval_high], axis=1)
 
-        return self.daily_df
+        return daily_df
 
     def XGBoost(self, row='Total'):
-        X = self.daily_df.index.tolist()
-        # X = [datetime.datetime.strptime(x, '%d, %b %Y') for x in X]
+        daily_df = self.daily_df.copy()
+        X = daily_df.index.tolist()
         # Day of Week, Day of month, Month, Day of Year, Week of Year
         X = [[x.isoweekday(), x.day, x.month, int(x.strftime("%j")), int(x.strftime("%W"))] for i,x in enumerate(X)]
-        Y = self.daily_df[row].tolist()
+        Y = daily_df[row].tolist()
         y_hat = []
 
-        forecasted_days = self.generate_dates(self.daily_df.index[-1], self.forecast_interval)
+        forecasted_days = self.generate_dates(daily_df.index[-1], self.forecast_interval)
         forecasted_days_ret = forecasted_days.copy()
 
         # Day of Week, Day of month, Month, Day of Year, Week of Year
@@ -70,7 +71,7 @@ class Regressor:
 
         for _ in range(5):
             x_train, y_train, x_test, y_test = train_test_split(X, Y, test_size=0.2)
-            model = xgb.XGBRegressor(n_estimators=50, early_stopping_rounds=50, verbosity=0)
+            model = xgb.XGBRegressor(n_estimators=100, early_stopping_rounds=50, verbosity=0)
             x_train, x_test, y_train, y_test = pd.DataFrame(x_train), pd.DataFrame(y_train), pd.DataFrame(x_test), pd.DataFrame(y_test)
             model.fit(x_train, y_train, eval_set=[(x_train, y_train), (x_test, y_test)])
             pred = np.array(model.predict(pd.DataFrame(forecasted_days)))
@@ -85,13 +86,13 @@ class Regressor:
             preds.append(y_hat[:, i].mean())
 
         preds = pd.DataFrame(data=preds, columns=["forecast"],
-                             index=self.daily_df.index.union(forecasted_days_ret))
-        interval_low = pd.DataFrame(data=low, columns=["interval_low"], index=self.daily_df.index.union(forecasted_days_ret))
-        interval_high = pd.DataFrame(data=high, columns=["interval_high"], index=self.daily_df.index.union(forecasted_days_ret))
+                             index=daily_df.index.union(forecasted_days_ret))
+        interval_low = pd.DataFrame(data=low, columns=["interval_low"], index=daily_df.index.union(forecasted_days_ret))
+        interval_high = pd.DataFrame(data=high, columns=["interval_high"], index=daily_df.index.union(forecasted_days_ret))
 
-        self.daily_df = pd.concat([self.daily_df, preds, interval_low, interval_high], axis=1)
+        daily_df = pd.concat([daily_df, preds, interval_low, interval_high], axis=1)
 
-        return self.daily_df
+        return daily_df
 
     def XGBoost_mod(self, daily_df, interval_forecast):
         test_df = daily_df.loc['Total'].T
@@ -114,10 +115,10 @@ class Regressor:
         # print(pred)
         return pred[0]
 
-    def LSTM(self, lookback=7, row='Total'):
-        num_estimators = 20
+    def LSTM(self, lookback=7, row='Total', num_estimators=10):
+        daily_df = self.daily_df.copy()
         scaler = MinMaxScaler()
-        train = self.daily_df[row].tolist()
+        train = daily_df[row].tolist()
         train = np.array(train).reshape((-1, 1))
         train = scaler.fit_transform(train)
         train = train.ravel()
@@ -166,14 +167,14 @@ class Regressor:
             pred.append(max(ans[:, i].mean(), 0))
 
 
-        forecasted_days = self.generate_dates(self.daily_df.index[-1], self.forecast_interval)
+        forecasted_days = self.generate_dates(daily_df.index[-1], self.forecast_interval)
         preds = pd.DataFrame(data=pred, columns=["forecast"],
-                             index=self.daily_df.index[lookback+(train_pred.shape[0])%lookback-1:].union(forecasted_days))
-        interval_low = pd.DataFrame(data=low, columns=["interval_low"], index=self.daily_df.index[lookback+(train_pred.shape[0])%lookback-1:].union(forecasted_days))
-        interval_high = pd.DataFrame(data=high, columns=["interval_high"], index=self.daily_df.index[lookback+(train_pred.shape[0])%lookback-1:].union(forecasted_days))
+                             index=daily_df.index[lookback+(train_pred.shape[0])%lookback-1:].union(forecasted_days))
+        interval_low = pd.DataFrame(data=low, columns=["interval_low"], index=daily_df.index[lookback+(train_pred.shape[0])%lookback-1:].union(forecasted_days))
+        interval_high = pd.DataFrame(data=high, columns=["interval_high"], index=daily_df.index[lookback+(train_pred.shape[0])%lookback-1:].union(forecasted_days))
 
-        self.daily_df = pd.concat([self.daily_df, preds, interval_low, interval_high], axis=1)
-        return self.daily_df
+        daily_df = pd.concat([daily_df, preds, interval_low, interval_high], axis=1)
+        return daily_df
 
 
 if __name__ == "__main__":
