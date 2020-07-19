@@ -66,10 +66,12 @@ app.layout = dbc.Container(fluid=True, children=[
             dbc.Col(html.H4("Forecast 10 days from today"), width={"size":6, "offset":3}),
             dbc.Tabs([
                 dbc.Tab([dcc.Graph(id="graph_daily_cases"),
-                         dcc.Graph(id="graph_total_cases")],
+                         dcc.Graph(id="graph_total_cases")
+                         ],
                         label="Projected Cases", ),
                 dbc.Tab([dcc.Graph(id="graph_daily_deaths"),
-                         dcc.Graph(id="graph_total_deaths")],
+                         # dcc.Graph(id="graph_total_deaths")
+                         ],
                         label="Projected Deaths", ),
                 dbc.Tab([dcc.Graph(id="State_map", figure=Graphs.draw_total_state_map(pre_df))],
                         label="State Maps")
@@ -81,13 +83,18 @@ app.layout = dbc.Container(fluid=True, children=[
 @app.callback(output=Output("graph_daily_cases","figure"), inputs=[Input("state","value"), Input("method","value")])
 def plot_cases(state, method):
     data = pd.read_csv(pred_path+"daily_{}_{}.csv".format(state, method), index_col=0)
-    print(data.columns)
     return Graphs.draw_graph(data, row=state)
 
 @app.callback(output=Output("graph_total_cases","figure"), inputs=[Input("state","value"), Input("method","value")])
 def plot_cases(state, method):
-    data = pd.read_csv(pred_path+"total_{}_{}.csv".format(state, method), index_col=0)
+    data = pd.read_csv(pred_path+"daily_{}_{}.csv".format(state, method), index_col=0)
+    data = data.cumsum()
     return Graphs.draw_graph(data, row=state)
+
+@app.callback(output=Output("out-panel", "children"), inputs=[Input("state", "value"), Input("method", "value")])
+def render_panel(state, method):
+    data = pd.read_csv(pred_path + "daily_{}_{}.csv".format(state, method), index_col=0)
+    return Graphs.draw_panel(data[state], state)
 
 # app.layout = html.Div([
 #     html.H1('COVID-19 Dashboard'),
