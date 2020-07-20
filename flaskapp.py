@@ -14,19 +14,11 @@ import dash_bootstrap_components as dbc
 import dash
 from dash.dependencies import Input, Output
 
-d = Data()
+data = Data()
 
-d.fetch_data()
-pre_df = d.preprocess_cases_data(d.df_us_cases)
-# df = d.daily_data(pre_df)
-# daily_reg = Regressor(df, 7)
-# arima_data = daily_reg.ARIMA()
-# total_reg = Regressor(pre_df, 7)
-# total_arima_data = total_reg.ARIMA()
-# g = Graphs.draw_graph(arima_data)
-# total_data, y_max_total = forecast_total_cases(grouped_df, daily_df)
-# states, state_wise_data = forecast_state_wise(grouped_df, daily_df)
-# graph = Graphs()
+data.fetch_data()
+preprocessed_df = data.preprocess_cases_data(data.df_us_cases)
+
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LUX])
 server = app.server
@@ -38,7 +30,7 @@ navbar = dbc.Nav(className="nav nav-pills", children=[
 
 dropdown_state = dbc.FormGroup([
     html.H4("Select State"),
-    dcc.Dropdown(id="state", options=[{'label':x, 'value':x} for x in pre_df.columns.tolist()], value='Total')
+    dcc.Dropdown(id="state", options=[{'label':x, 'value':x} for x in preprocessed_df.columns.tolist()], value='Total')
 ])
 
 dropdown_model = dbc.FormGroup([
@@ -73,7 +65,7 @@ app.layout = dbc.Container(fluid=True, children=[
                          dcc.Graph(id="graph_total_deaths")
                          ],
                         label="Projected Deaths", ),
-                dbc.Tab([dcc.Graph(id="State_map", figure=Graphs.draw_total_state_map(pre_df))],
+                dbc.Tab([dcc.Graph(id="State_map", figure=Graphs.draw_total_state_map(preprocessed_df))],
                         label="State Maps")
                     ])
                 ])

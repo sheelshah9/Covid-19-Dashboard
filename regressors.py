@@ -6,6 +6,7 @@ import numpy as np
 import datetime
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+import tensorflow
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import LSTM, Dropout, Dense
 
@@ -112,9 +113,7 @@ class Regressor:
         multi_model = MultiOutputRegressor(model).fit(x_train, y_train)
 
         x_forecast = pd.DataFrame(final_df.iloc[-1,interval_forecast:].tolist(), index=x_train.columns).T
-        forecasted_days = []
         pred = multi_model.predict(x_forecast)
-        # print(pred)
         return pred[0]
 
     def LSTM(self, lookback=7, row='Total', num_estimators=10):
@@ -141,16 +140,19 @@ class Regressor:
         x_train, y_train = np.array(x_train), np.array(y_train)
         x_train = x_train.reshape((x_train.shape[0], x_train.shape[1], 1))
         print(x_train.shape)
-        model = Sequential()
-        model.add(LSTM(50, input_shape=(lookback, 1)))
-        # model.add(LSTM(50, activation='relu'))
-        # model.add(Dropout(0.2))
-        model.add(Dense(self.forecast_interval))
 
-        model.compile(loss='mean_squared_error', optimizer='adam')
+
+        callback = tensorflow.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
+
         y_hat = []
         for _ in range(num_estimators):
-            model.fit(x_train, y_train, epochs=100, verbose=0, shuffle=True)
+            model = Sequential()
+            model.add(LSTM(50, input_shape=(lookback, 1)))
+            # model.add(LSTM(50, activation='relu'))
+            # model.add(Dropout(0.2))
+            model.add(Dense(self.forecast_interval))
+            model.compile(loss='mean_squared_error', optimizer='adam')
+            model.fit(x_train, y_train, epochs=100, verbose=1, shuffle=True, callbacks=[callback])
             x_test = np.array(y_train[-1]).reshape((1, x_train.shape[1], 1))
             x_test = np.concatenate([train_pred, x_test])
             y_hat.append(scaler.inverse_transform(model.predict(x_test)))
@@ -193,7 +195,7 @@ if __name__ == "__main__":
     reg = Regressor(df,7)
     # df = reg.ARIMA()
     # # print(i)
-    xgm = reg.ARIMA()
+    xgm = reg.LSTM()
     # xgm['lstm_forecast'].plot('g')
     # xgm['lstm_interval_low'].plot('r')
     # plt.plot(xgm.index, xgm['lstm_forecast'], 'g')
