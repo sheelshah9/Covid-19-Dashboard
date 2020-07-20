@@ -94,7 +94,8 @@ def plot_cases(state, method):
 @app.callback(output=Output("out-panel", "children"), inputs=[Input("state", "value"), Input("method", "value")])
 def render_panel(state, method):
     data = pd.read_csv(pred_path + "daily_{}_{}.csv".format(state, method), index_col=0)
-    return Graphs.draw_panel(data[state], state)
+    data = pd.Series(data[state], index=data.index)
+    return Graphs.draw_panel(data, state)
 
 @app.callback(output=Output("graph_daily_deaths","figure"), inputs=[Input("state","value"), Input("method","value")])
 def plot_cases(state, method):
@@ -106,35 +107,6 @@ def plot_cases(state, method):
     data = pd.read_csv(pred_path+"death_{}_{}.csv".format(state, method), index_col=0)
     data = data.cumsum()
     return Graphs.draw_graph(data, row=state)
-
-# app.layout = html.Div([
-#     html.H1('COVID-19 Dashboard'),
-#     dcc.Graph(id="Data", figure=graph.draw_graph_daily_increase(data)),
-#     dcc.Interval(
-#         id="12hrinterval",
-#         interval=43200000,
-#         n_intervals=0
-#     ),
-#     dcc.Graph(id="State", figure=graph.draw_total_state_map(df)),
-#     dcc.Interval(
-#         id="12hrinterval_state",
-#         interval=43200000,
-#         n_intervals=0
-#     ),
-#     dcc.Graph(id="Total_US", figure=graph.draw_graph_daily_increase(total_data)),
-#     dcc.Interval(
-#         id="12hrinterval_total",
-#         interval=43200000,
-#         n_intervals=0
-#     ),
-#     dcc.Graph(id="State_wise", figure=graph.draw_graph_state_wise(states, state_wise_data)),
-#     dcc.Interval(
-#         id="12hrinterval_statewise",
-#         interval=43200000,
-#         n_intervals=0
-#     )
-# ])
-
 
 
 if __name__ == '__main__':

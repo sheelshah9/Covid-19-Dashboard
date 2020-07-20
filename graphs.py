@@ -181,7 +181,7 @@ class Graphs:
         df = df.dropna()
         total_cases = df.sum()
         new_case_today = df.iloc[-1]
-        peak_date, peak_cases = df.argmax(), df.max()
+        peak_date, peak_cases = df.idxmax(), df.max()
         panel = html.Div([
             html.H4(row),
             dbc.Card(body=True, className="text-white bg-primary", children=[
