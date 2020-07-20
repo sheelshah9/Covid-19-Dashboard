@@ -43,6 +43,7 @@ class Regressor:
 
         real, _, intervals = model.forecast(self.forecast_interval)
         preds = np.append(preds, real)
+        preds[preds < 0] = 0
 
         forecasted_days = self.generate_dates(daily_df.index[-1], self.forecast_interval)
         preds = pd.DataFrame(data=preds, columns=["forecast"], index=daily_df.index[final_param[1]:].union(forecasted_days))
@@ -50,7 +51,8 @@ class Regressor:
         interval_high = pd.DataFrame(data=intervals[:,1], columns=["interval_high"], index=forecasted_days)
 
         daily_df = pd.concat([daily_df, preds, interval_low, interval_high], axis=1)
-
+        daily_df['interval_low'].fillna(daily_df['forecast'], inplace=True)
+        daily_df['interval_high'].fillna(daily_df['forecast'], inplace=True)
         return daily_df
 
     def XGBoost(self, row='Total'):
@@ -186,7 +188,7 @@ if __name__ == "__main__":
     d = Data()
 
     d.fetch_data()
-    df = d.preprocess_data(d.df_us_cases)
+    df = d.preprocess_cases_data(d.df_us_cases)
     df = d.daily_data(df)
     reg = Regressor(df,7)
     # df = reg.ARIMA()
