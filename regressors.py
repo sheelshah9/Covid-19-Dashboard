@@ -39,7 +39,7 @@ class Regressor:
 
         model = final_model
         preds = model.predict(start = final_param[1], end = len(daily_df.index)-1)
-        preds = np.array(preds) + daily_df[row].tolist()[-final_param[1]]
+        preds = np.array(preds) + np.array(daily_df[row].tolist())[final_param[1]:]
 
         real, _, intervals = model.forecast(self.forecast_interval)
         preds = np.append(preds, real)
@@ -191,11 +191,11 @@ if __name__ == "__main__":
     reg = Regressor(df,7)
     # df = reg.ARIMA()
     # # print(i)
-    xgm = reg.LSTM()
+    xgm = reg.ARIMA()
     # xgm['lstm_forecast'].plot('g')
     # xgm['lstm_interval_low'].plot('r')
-    plt.plot(xgm.index, xgm['lstm_forecast'], 'g')
-    plt.plot(xgm.index, xgm['lstm_interval_low'], 'r')
-    plt.plot(xgm.index, xgm['lstm_interval_high'], 'y')
-    plt.bar(xgm.index, xgm['Total'])
-    plt.show()
+    # plt.plot(xgm.index, xgm['lstm_forecast'], 'g')
+    # plt.plot(xgm.index, xgm['lstm_interval_low'], 'r')
+    # plt.plot(xgm.index, xgm['lstm_interval_high'], 'y')
+    # plt.bar(xgm.index, xgm['Total'])
+    # plt.show()
