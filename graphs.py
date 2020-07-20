@@ -178,6 +178,7 @@ class Graphs:
 
     @staticmethod
     def draw_panel(df, row):
+        df = df.dropna()
         total_cases = df.sum()
         new_case_today = df.iloc[-1]
         peak_date, peak_cases = df.argmax(), df.max()
@@ -185,12 +186,12 @@ class Graphs:
             html.H4(row),
             dbc.Card(body=True, className="text-white bg-primary", children=[
                 html.H6("Total Cases:", style={'color':'white'}),
-                html.H3("{:,}".format(total_cases), className='text-danger'),
+                html.H3("{:,.0f}".format(total_cases), className='text-danger'),
                 html.H6("New Cases Today:", style={'color':'white'}),
-                html.H3("{:,}".format(new_case_today), className='text-danger'),
+                html.H3("{:,.0f}".format(new_case_today), className='text-danger'),
                 html.H6("Peak Day:", style={'color':'white'}),
                 html.H3(peak_date, className='text-danger'),
-                html.H6("With {:,} Cases".format(peak_cases))
+                html.H6("With {:,.0f} Cases".format(peak_cases), style={'color': 'white'})
             ])
         ])
         return panel
