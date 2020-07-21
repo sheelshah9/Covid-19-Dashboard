@@ -3,7 +3,6 @@ import plotly.graph_objects as go
 from graphs import Graphs
 from helper import Data
 import pandas as pd
-import pickle
 
 pred_path = "data/"
 models = ['ARIMA', 'XGBoost', 'LSTM']
@@ -56,18 +55,18 @@ app.layout = dbc.Container(fluid=True, children=[
             ]),
             dbc.Col(md=9, children=[
             dbc.Col(html.H4("Forecast 7 days from today"), width={"size":6, "offset":3}),
-            dbc.Tabs([
+            dbc.Tabs(children=[
                 dbc.Tab([dcc.Graph(id="graph_daily_cases"),
                          dcc.Graph(id="graph_total_cases")
                          ],
-                        label="Projected Cases", ),
+                        label="Projected Cases", tab_id="Cases"),
                 dbc.Tab([dcc.Graph(id="graph_daily_deaths"),
                          dcc.Graph(id="graph_total_deaths")
                          ],
-                        label="Projected Deaths", ),
+                        label="Projected Deaths", tab_id="Deaths"),
                 dbc.Tab([dcc.Graph(id="State_map", figure=Graphs.draw_total_state_map(preprocessed_df))],
-                        label="State Maps")
-                    ])
+                        label="State Maps", tab_id="Maps")
+                    ], id="tabs", active_tab="Cases")
                 ])
             ])
 ]   )
@@ -83,11 +82,16 @@ def plot_cases(state, method):
     data = data.cumsum()
     return Graphs.draw_graph(data, row=state)
 
-@app.callback(output=Output("out-panel", "children"), inputs=[Input("state", "value"), Input("method", "value")])
-def render_panel(state, method):
-    data = pd.read_csv(pred_path + "daily_{}_{}.csv".format(state, method), index_col=0)
-    data = pd.Series(data[state], index=data.index)
-    return Graphs.draw_panel(data, state)
+@app.callback(output=Output("out-panel", "children"), inputs=[Input("state", "value"), Input("method", "value"), Input("tabs", "active_tab")])
+def render_panel(state, method, tab):
+    if tab=="Deaths":
+        data = pd.read_csv(pred_path + "death_{}_{}.csv".format(state, method), index_col=0)
+        data = pd.Series(data[state], index=data.index)
+        return Graphs.draw_panel(data, state, tab)
+    else:
+        data = pd.read_csv(pred_path + "daily_{}_{}.csv".format(state, method), index_col=0)
+        data = pd.Series(data[state], index=data.index)
+        return Graphs.draw_panel(data, state, "Cases")
 
 @app.callback(output=Output("graph_daily_deaths","figure"), inputs=[Input("state","value"), Input("method","value")])
 def plot_cases(state, method):

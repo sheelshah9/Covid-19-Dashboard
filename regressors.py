@@ -97,6 +97,7 @@ class Regressor:
 
         return daily_df
 
+    #TODO
     def XGBoost_mod(self, daily_df, interval_forecast):
         test_df = daily_df.loc['Total'].T
         final_df = test_df.copy()
@@ -179,27 +180,3 @@ class Regressor:
 
         daily_df = pd.concat([daily_df, preds, interval_low, interval_high], axis=1)
         return daily_df
-
-
-if __name__ == "__main__":
-
-    import pandas as pd, datetime
-    from helper import Data
-    import matplotlib.pyplot as plt
-
-    d = Data()
-
-    d.fetch_data()
-    df = d.preprocess_cases_data(d.df_us_cases)
-    df = d.daily_data(df)
-    reg = Regressor(df,7)
-    # df = reg.ARIMA()
-    # # print(i)
-    xgm = reg.LSTM()
-    # xgm['lstm_forecast'].plot('g')
-    # xgm['lstm_interval_low'].plot('r')
-    # plt.plot(xgm.index, xgm['lstm_forecast'], 'g')
-    # plt.plot(xgm.index, xgm['lstm_interval_low'], 'r')
-    # plt.plot(xgm.index, xgm['lstm_interval_high'], 'y')
-    # plt.bar(xgm.index, xgm['Total'])
-    # plt.show()
