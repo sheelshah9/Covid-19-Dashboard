@@ -56,17 +56,27 @@ app.layout = dbc.Container(fluid=True, children=[
             dbc.Col(md=9, children=[
             dbc.Col(html.H4("Forecast 7 days from today"), width={"size":6, "offset":3}),
             dbc.Tabs(children=[
-                dbc.Tab([dcc.Graph(id="graph_daily_cases"),
-                         dcc.Graph(id="graph_total_cases")
+                dbc.Tab([
+                    html.Br(), html.Br(),
+                    html.H5("Daily Cases"),
+                    dcc.Graph(id="graph_daily_cases"),
+                    html.Br(), html.Br(),
+                    html.H5("Total Cases"),
+                    dcc.Graph(id="graph_total_cases")
                          ],
-                        label="Projected Cases", tab_id="Cases"),
-                dbc.Tab([dcc.Graph(id="graph_daily_deaths"),
-                         dcc.Graph(id="graph_total_deaths")
+                        label="Projected Cases", tab_id="Cases", tab_style={"border-color": "#f2f3f4", "border-style": "solid", "border-bottom-style": "none", "cursor":"pointer"}),
+                dbc.Tab([
+                    html.Br(), html.Br(),
+                    html.H5("Daily Deaths"),
+                    dcc.Graph(id="graph_daily_deaths"),
+                    html.Br(), html.Br(),
+                    html.H5("Total Deaths"),
+                    dcc.Graph(id="graph_total_deaths")
                          ],
-                        label="Projected Deaths", tab_id="Deaths"),
+                        label="Projected Deaths", tab_id="Deaths", tab_style={"border-color": "#f2f3f4", "border-style": "solid", "border-bottom-style": "none", "cursor":"pointer"}),
                 dbc.Tab([dcc.Graph(id="State_map", figure=Graphs.draw_total_state_map(preprocessed_df))],
-                        label="State Maps", tab_id="Maps")
-                    ], id="tabs", active_tab="Cases")
+                        label="State Maps", tab_id="Maps", tab_style={"border-color": "#f2f3f4", "border-style": "solid", "border-bottom-style": "none", "cursor":"pointer"})
+            ], id="tabs", active_tab="Cases")
                 ])
             ])
 ]   )

@@ -118,7 +118,7 @@ class Graphs:
             z=grouped_df.iloc[-1, :].astype(float),  # Data to be color-coded
             locationmode='USA-states',  # set of locations match entries in `locations`
             colorscale='Reds',
-            colorbar_title="Millions USD",
+            colorbar_title="Cases",
         ))
 
         fig.update_layout(
