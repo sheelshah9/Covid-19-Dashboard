@@ -119,7 +119,8 @@ def plot_cases(state, method):
 def plot_statewise_map(state):
     if state == "Total":
         return Graphs.draw_total_state_map(preprocessed_df)
-    return graph.draw_statewise_map(data.df_us_cases, row=state)
+    else:
+        return graph.draw_statewise_map(data.df_us_cases, row=state)
 
 
 if __name__ == '__main__':

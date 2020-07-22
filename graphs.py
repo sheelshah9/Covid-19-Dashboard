@@ -208,10 +208,11 @@ class Graphs:
 
         df = df.iloc[:, [4, 5, 6, -1]]
         df = df[df["Province_State"]==row]
+        df.dropna(inplace=True)
         df["FIPS"] = df.FIPS.map(int).map("{:05}".format)
         df.rename(columns={df.columns[-1]:"Cases"}, inplace=True)
         fig = px.choropleth(df, geojson=self.counties, locations="FIPS", color=df.columns[-1],
-                            projection="mercator", color_continuous_scale="Blues", hover_name=df.columns[1],
+                            projection="mercator", color_continuous_scale="Reds", hover_name=df.columns[1],
                             hover_data={
                                 'FIPS': False,
                                 df.columns[-1]: True
