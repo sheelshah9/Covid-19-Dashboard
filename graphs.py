@@ -206,12 +206,17 @@ class Graphs:
 
     def draw_statewise_map(self, df, row):
 
-        df = df.iloc[:, [4, 6, -1]]
+        df = df.iloc[:, [4, 5, 6, -1]]
         df = df[df["Province_State"]==row]
         df["FIPS"] = df.FIPS.map(int).map("{:05}".format)
+        df.rename(columns={df.columns[-1]:"Cases"}, inplace=True)
         fig = px.choropleth(df, geojson=self.counties, locations="FIPS", color=df.columns[-1],
-                            projection="mercator", color_continuous_scale="Blues"
+                            projection="mercator", color_continuous_scale="Blues", hover_name=df.columns[1],
+                            hover_data={
+                                'FIPS': False,
+                                df.columns[-1]: True
+                            }
                             )
         fig.update_geos(fitbounds="locations", visible=False)
-        fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+        fig.update_layout(margin={"r": 0, "l": 0, "b": 0, "t" : 0})
         return fig
