@@ -2,7 +2,10 @@ import plotly.graph_objects as go
 import datetime
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-
+import plotly.express as px
+from urllib.request import urlopen
+import json
+import plotly.data
 
 class Graphs:
     us_state_abbrev = {
@@ -64,8 +67,13 @@ class Graphs:
         'Wyoming': 'WY'
     }
 
-    def __int__(self):
-        pass
+    def __init__(self):
+        with urlopen('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json') as response:
+            self.counties = json.load(response)
+        self.fips = set()
+        for feat in self.counties["features"]:
+            prop = feat["properties"]
+            self.fips.add(prop["COUNTY"])
 
     @staticmethod
     def draw_graph(df, row='Total'):
@@ -195,3 +203,15 @@ class Graphs:
             ])
         ])
         return panel
+
+    def draw_statewise_map(self, df, row):
+
+        df = df.iloc[:, [4, 6, -1]]
+        df = df[df["Province_State"]==row]
+        df["FIPS"] = df.FIPS.map(int).map("{:05}".format)
+        fig = px.choropleth(df, geojson=self.counties, locations="FIPS", color=df.columns[-1],
+                            projection="mercator", color_continuous_scale="Blues"
+                            )
+        fig.update_geos(fitbounds="locations", visible=False)
+        fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+        return fig

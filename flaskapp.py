@@ -14,6 +14,7 @@ import dash
 from dash.dependencies import Input, Output
 
 data = Data()
+graph = Graphs()
 
 data.fetch_data()
 preprocessed_df = data.preprocess_cases_data(data.df_us_cases)
@@ -113,6 +114,12 @@ def plot_cases(state, method):
     data = pd.read_csv(pred_path+"death_{}_{}.csv".format(state, method), index_col=0)
     data = data.cumsum()
     return Graphs.draw_graph(data, row=state)
+
+@app.callback(output=Output("State_map","figure"), inputs=[Input("state","value")])
+def plot_statewise_map(state):
+    if state == "Total":
+        return Graphs.draw_total_state_map(preprocessed_df)
+    return graph.draw_statewise_map(data.df_us_cases, row=state)
 
 
 if __name__ == '__main__':
