@@ -132,51 +132,57 @@ class Regressor:
             y_train.append(train[i + lookback:i + lookback + self.forecast_interval])
 
         train_pred = []
-        for i in range(len(train)-lookback+1):
-            train_pred.append(train[i:i+lookback])
+        for i in range(len(train) - lookback + 1):
+            train_pred.append(train[i:i + lookback])
 
-        train_pred = np.array(train_pred)
+        train_pred = np.array(x_train)
         train_pred = train_pred.reshape((train_pred.shape[0], train_pred.shape[1], 1))
 
         x_train, y_train = np.array(x_train), np.array(y_train)
         x_train = x_train.reshape((x_train.shape[0], x_train.shape[1], 1))
         print(x_train.shape)
 
-
-        callback = tensorflow.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
+        callback = tensorflow.keras.callbacks.EarlyStopping(monitor='loss', patience=5)
 
         y_hat = []
-        for _ in range(num_estimators):
-            model = Sequential()
-            model.add(LSTM(50, input_shape=(lookback, 1)))
-            # model.add(LSTM(50, activation='relu'))
-            # model.add(Dropout(0.2))
-            model.add(Dense(self.forecast_interval))
-            model.compile(loss='mean_squared_error', optimizer='adam')
-            model.fit(x_train, y_train, epochs=100, verbose=1, shuffle=True, callbacks=[callback])
-            x_test = np.array(y_train[-1]).reshape((1, x_train.shape[1], 1))
-            x_test = np.concatenate([train_pred, x_test])
-            y_hat.append(scaler.inverse_transform(model.predict(x_test)))
+        model = Sequential()
+        model.add(LSTM(50, input_shape=(lookback, 1)))
+        # model.add(LSTM(50, activation='relu'))
+        # model.add(Dropout(0.2))
+        model.add(Dense(self.forecast_interval))
+        model.compile(loss='mean_squared_error', optimizer='adam')
+        model.fit(x_train, y_train, epochs=100, verbose=1, shuffle=True, callbacks=[callback])
+        x_test = np.array(y_train[-1]).reshape((1, x_train.shape[1], 1))
+        y_hat.append(scaler.inverse_transform(model.predict(train_pred)))
 
         y_hat = np.array(y_hat)
+
+        y_hat = y_hat.reshape(-1, 7)
+        latest_pred = np.array(scaler.inverse_transform(model.predict(y_train[-1].reshape((1, y_train.shape[1], 1)))))
         ans = []
-        for i in range(num_estimators):
-            ans.append(y_hat[i, 0:y_hat.shape[1]:lookback].ravel())
+        for i in range(y_hat.shape[0]):
+            temp = np.concatenate((np.array([np.nan] * i), y_hat[i],
+                                   np.array([np.nan] * (y_hat.shape[0] - i + self.forecast_interval - 1))), axis=0)
+            ans.append(temp)
+
+        ans.append(np.concatenate((np.array([np.nan] * (y_hat.shape[0] + self.forecast_interval - 1)), latest_pred[0]),
+                                  axis=0))
         ans = np.array(ans)
         print(ans.shape)
         low, high = [], []
         pred = []
         for i in range(ans.shape[1]):
-            low.append(max(ans[:, i].min(), 0))
-            high.append(ans[:, i].max())
-            pred.append(max(ans[:, i].mean(), 0))
-
+            low.append(max(np.nanmin(ans[:, i]), 0))
+            high.append(np.nanmax(ans[:, i]))
+            pred.append(max(np.nanmean(ans[:, i]), 0))
 
         forecasted_days = self.generate_dates(daily_df.index[-1], self.forecast_interval)
         preds = pd.DataFrame(data=pred, columns=["forecast"],
-                             index=daily_df.index[lookback+(train_pred.shape[0])%lookback-1:].union(forecasted_days))
-        interval_low = pd.DataFrame(data=low, columns=["interval_low"], index=daily_df.index[lookback+(train_pred.shape[0])%lookback-1:].union(forecasted_days))
-        interval_high = pd.DataFrame(data=high, columns=["interval_high"], index=daily_df.index[lookback+(train_pred.shape[0])%lookback-1:].union(forecasted_days))
+                             index=daily_df.index[lookback:].union(forecasted_days))
+        interval_low = pd.DataFrame(data=low, columns=["interval_low"],
+                                    index=daily_df.index[lookback:].union(forecasted_days))
+        interval_high = pd.DataFrame(data=high, columns=["interval_high"],
+                                     index=daily_df.index[lookback:].union(forecasted_days))
 
         daily_df = pd.concat([daily_df, preds, interval_low, interval_high], axis=1)
         return daily_df
