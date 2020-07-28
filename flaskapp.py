@@ -1,5 +1,3 @@
-from regressors import Regressor
-import plotly.graph_objects as go
 from graphs import Graphs
 from helper import Data
 import pandas as pd
@@ -19,43 +17,48 @@ graph = Graphs()
 data.fetch_data()
 preprocessed_df = data.preprocess_cases_data(data.df_us_cases)
 
-
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LUX])
 server = app.server
 
 navbar = dbc.Nav(className="nav nav-pills", children=[
-    dbc.NavItem(dbc.NavLink([html.I(className="fa fa-github"), "  GitHub"], href="https://github.com/sheelshah9", active=True, target="_blank")),
-    dbc.NavItem(dbc.NavLink([html.I(className="fa fa-linkedin"), "  LinkedIn"], href="https://www.linkedin.com/in/sheelshah09/", active=True, target="_blank"))
+    dbc.NavItem(
+        dbc.NavLink([html.I(className="fa fa-github"), "  GitHub"], href="https://github.com/sheelshah9", active=True,
+                    target="_blank")),
+    dbc.NavItem(
+        dbc.NavLink([html.I(className="fa fa-linkedin"), "  LinkedIn"], href="https://www.linkedin.com/in/sheelshah09/",
+                    active=True, target="_blank"))
 ])
 
 dropdown_state = dbc.FormGroup([
     html.H4("Select State"),
-    dcc.Dropdown(id="state", options=[{'label':x, 'value':x} for x in preprocessed_df.columns.tolist()], value='Total')
+    dcc.Dropdown(id="state", options=[{'label': x, 'value': x} for x in preprocessed_df.columns.tolist()],
+                 value='Total')
 ])
 
 dropdown_model = dbc.FormGroup([
     html.H4("Select Forecast Method"),
-    dcc.Dropdown(id="method", options=[{'label':x, 'value':x} for x in models], value='ARIMA')
+    dcc.Dropdown(id="method", options=[{'label': x, 'value': x} for x in models], value='ARIMA')
 ])
 
 app.layout = dbc.Container(fluid=True, children=[
-    #Header
+    # Header
     html.Br(),
-    dbc.Row([html.H1("Covid-19 Dashboard",id="nav-pills")], justify="center", align="center", className="h-50", style={"height": "100h"}),
+    dbc.Row([html.H1("Covid-19 Dashboard", id="nav-pills")], justify="center", align="center", className="h-50",
+            style={"height": "100h"}),
     navbar,
-    html.Br(),html.Br(),
+    html.Br(), html.Br(),
 
-    #Body
+    # Body
     dbc.Row([
-            dbc.Col(md=3, children=[
-                dropdown_state,
-                html.Br(), html.Br(),
-                dropdown_model,
-                html.Br(), html.Br(),
-                html.Div(id='out-panel')
-            ]),
-            dbc.Col(md=9, children=[
-            dbc.Col(html.H4("Forecast 7 days from today"), width={"size":6, "offset":3}),
+        dbc.Col(md=3, children=[
+            dropdown_state,
+            html.Br(), html.Br(),
+            dropdown_model,
+            html.Br(), html.Br(),
+            html.Div(id='out-panel')
+        ]),
+        dbc.Col(md=9, children=[
+            dbc.Col(html.H4("Forecast 7 days from today"), width={"size": 6, "offset": 3}),
             dbc.Tabs(children=[
                 dbc.Tab([
                     html.Br(), html.Br(),
@@ -64,8 +67,10 @@ app.layout = dbc.Container(fluid=True, children=[
                     html.Br(), html.Br(),
                     html.H5("Total Cases"),
                     dcc.Graph(id="graph_total_cases")
-                         ],
-                        label="Projected Cases", tab_id="Cases", tab_style={"border-color": "#f2f3f4", "border-style": "solid", "border-bottom-style": "none", "cursor":"pointer"}),
+                ],
+                    label="Projected Cases", tab_id="Cases",
+                    tab_style={"border-color": "#f2f3f4", "border-style": "solid", "border-bottom-style": "none",
+                               "cursor": "pointer"}),
                 dbc.Tab([
                     html.Br(), html.Br(),
                     html.H5("Daily Deaths"),
@@ -73,29 +78,37 @@ app.layout = dbc.Container(fluid=True, children=[
                     html.Br(), html.Br(),
                     html.H5("Total Deaths"),
                     dcc.Graph(id="graph_total_deaths")
-                         ],
-                        label="Projected Deaths", tab_id="Deaths", tab_style={"border-color": "#f2f3f4", "border-style": "solid", "border-bottom-style": "none", "cursor":"pointer"}),
+                ],
+                    label="Projected Deaths", tab_id="Deaths",
+                    tab_style={"border-color": "#f2f3f4", "border-style": "solid", "border-bottom-style": "none",
+                               "cursor": "pointer"}),
                 dbc.Tab([dcc.Graph(id="State_map", figure=Graphs.draw_total_state_map(preprocessed_df))],
-                        label="State Maps", tab_id="Maps", tab_style={"border-color": "#f2f3f4", "border-style": "solid", "border-bottom-style": "none", "cursor":"pointer"})
+                        label="State Maps", tab_id="Maps",
+                        tab_style={"border-color": "#f2f3f4", "border-style": "solid", "border-bottom-style": "none",
+                                   "cursor": "pointer"})
             ], id="tabs", active_tab="Cases")
-                ])
-            ])
-]   )
+        ])
+    ])
+])
 
-@app.callback(output=Output("graph_daily_cases","figure"), inputs=[Input("state","value"), Input("method","value")])
+
+@app.callback(output=Output("graph_daily_cases", "figure"), inputs=[Input("state", "value"), Input("method", "value")])
 def plot_cases(state, method):
-    data = pd.read_csv(pred_path+"daily_{}_{}.csv".format(state, method), index_col=0)
+    data = pd.read_csv(pred_path + "daily_{}_{}.csv".format(state, method), index_col=0)
     return Graphs.draw_graph(data, row=state)
 
-@app.callback(output=Output("graph_total_cases","figure"), inputs=[Input("state","value"), Input("method","value")])
+
+@app.callback(output=Output("graph_total_cases", "figure"), inputs=[Input("state", "value"), Input("method", "value")])
 def plot_cases(state, method):
-    data = pd.read_csv(pred_path+"daily_{}_{}.csv".format(state, method), index_col=0)
+    data = pd.read_csv(pred_path + "daily_{}_{}.csv".format(state, method), index_col=0)
     data = data.cumsum()
     return Graphs.draw_graph(data, row=state)
 
-@app.callback(output=Output("out-panel", "children"), inputs=[Input("state", "value"), Input("method", "value"), Input("tabs", "active_tab")])
+
+@app.callback(output=Output("out-panel", "children"),
+              inputs=[Input("state", "value"), Input("method", "value"), Input("tabs", "active_tab")])
 def render_panel(state, method, tab):
-    if tab=="Deaths":
+    if tab == "Deaths":
         data = pd.read_csv(pred_path + "death_{}_{}.csv".format(state, method), index_col=0)
         data = pd.Series(data[state], index=data.index)
         return Graphs.draw_panel(data, state, tab)
@@ -104,18 +117,21 @@ def render_panel(state, method, tab):
         data = pd.Series(data[state], index=data.index)
         return Graphs.draw_panel(data, state, "Cases")
 
-@app.callback(output=Output("graph_daily_deaths","figure"), inputs=[Input("state","value"), Input("method","value")])
+
+@app.callback(output=Output("graph_daily_deaths", "figure"), inputs=[Input("state", "value"), Input("method", "value")])
 def plot_cases(state, method):
-    data = pd.read_csv(pred_path+"death_{}_{}.csv".format(state, method), index_col=0)
+    data = pd.read_csv(pred_path + "death_{}_{}.csv".format(state, method), index_col=0)
     return Graphs.draw_graph(data, row=state)
 
-@app.callback(output=Output("graph_total_deaths","figure"), inputs=[Input("state","value"), Input("method","value")])
+
+@app.callback(output=Output("graph_total_deaths", "figure"), inputs=[Input("state", "value"), Input("method", "value")])
 def plot_cases(state, method):
-    data = pd.read_csv(pred_path+"death_{}_{}.csv".format(state, method), index_col=0)
+    data = pd.read_csv(pred_path + "death_{}_{}.csv".format(state, method), index_col=0)
     data = data.cumsum()
     return Graphs.draw_graph(data, row=state)
 
-@app.callback(output=Output("State_map","figure"), inputs=[Input("state","value")])
+
+@app.callback(output=Output("State_map", "figure"), inputs=[Input("state", "value")])
 def plot_statewise_map(state):
     if state == "Total":
         return Graphs.draw_total_state_map(preprocessed_df)

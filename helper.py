@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 class Data():
 
     def fetch_data(self):
@@ -10,7 +11,8 @@ class Data():
 
     @staticmethod
     def preprocess_cases_data(df):
-        grouped_df = df.drop(['UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Admin2', 'Country_Region', 'Lat', 'Long_'], axis=1)
+        grouped_df = df.drop(['UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Admin2', 'Country_Region', 'Lat', 'Long_'],
+                             axis=1)
         grouped_df = grouped_df.groupby(['Province_State']).sum()
         grouped_df.loc['Total'] = grouped_df.sum()
         grouped_df = grouped_df.T
@@ -21,8 +23,10 @@ class Data():
 
     @staticmethod
     def preprocess_death_data(df):
-        grouped_df = df.drop(['UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Admin2', 'Country_Region', 'Lat', 'Long_', 'Combined_Key', 'Population'],
-                             axis=1)
+        grouped_df = df.drop(
+            ['UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Admin2', 'Country_Region', 'Lat', 'Long_', 'Combined_Key',
+             'Population'],
+            axis=1)
         grouped_df = grouped_df.groupby(['Province_State']).sum()
         grouped_df.loc['Total'] = grouped_df.sum()
         grouped_df = grouped_df.T
@@ -37,9 +41,9 @@ class Data():
         new_df = new_df.iloc[1:, :]
         return new_df
 
+
 if __name__ == "__main__":
     d = Data()
     d.fetch_data()
     x = d.preprocess_cases_data(d.df_us_cases)
     print(x)
-    # print(d.daily_data(x))

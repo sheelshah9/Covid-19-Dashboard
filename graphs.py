@@ -5,7 +5,7 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 from urllib.request import urlopen
 import json
-import plotly.data
+
 
 class Graphs:
     us_state_abbrev = {
@@ -119,8 +119,6 @@ class Graphs:
     @staticmethod
     def draw_total_state_map(df):
         grouped_df = df.drop([x for x in df.columns.tolist() if x not in Graphs.us_state_abbrev], axis=1)
-        # print(grouped_df)
-        # print(grouped_df.loc[-1].astype(float).tolist())
         fig = go.Figure(data=go.Choropleth(
             locations=[Graphs.us_state_abbrev[x] for x in grouped_df.columns.tolist()],  # Spatial coordinates
             z=grouped_df.iloc[-1, :].astype(float),  # Data to be color-coded
@@ -136,54 +134,6 @@ class Graphs:
 
         return fig
 
-    # TODO
-    def draw_graph_state_wise(self, states, data):
-        layout = go.Layout(
-            yaxis=dict(title='No. of cases reported daily - Statewise'),
-            title='Covid-19 Daily increase projection - Statewise',
-            showlegend=False)
-
-        fig = go.Figure(data=data, layout=layout)
-
-        # Dynamically generate dropdowns
-        dropdowns = []
-        visible_array = [False] * len(states) * 3
-        for i, s in enumerate(states):
-            vis_arr = visible_array.copy()
-            vis_arr[i * 3:i * 3 + 3] = [True] * 3
-            temp = dict(label=s,
-                        method="update",
-                        args=[{"visible": vis_arr}]
-                        )
-            dropdowns.append(temp)
-
-        # Add dropdown
-        fig.update_layout(
-            updatemenus=[
-                dict(
-                    active=0,
-                    buttons=list(dropdowns),
-                    direction="down",
-                    pad={"r": 10, "t": 10},
-                    showactive=True,
-                    x=0.09,
-                    xanchor="left",
-                    y=1.2,
-                    yanchor="top"
-                ),
-            ]
-        )
-
-        # Add annotation
-        fig.update_layout(
-            annotations=[
-                dict(text="State:", showarrow=False,
-                     x=0, y=1.13, yref="paper", align="left")
-            ], plot_bgcolor='rgb(255,255,255)'
-        )
-
-        return fig
-
     @staticmethod
     def draw_panel(df, row, type):
         df = df.dropna()
@@ -193,11 +143,11 @@ class Graphs:
         panel = html.Div([
             html.H4(row),
             dbc.Card(body=True, className="text-white bg-primary", children=[
-                html.H6("Total {}:".format(type), style={'color':'white'}),
+                html.H6("Total {}:".format(type), style={'color': 'white'}),
                 html.H3("{:,.0f}".format(total_cases), className='text-danger'),
-                html.H6("New {} Today:".format(type), style={'color':'white'}),
+                html.H6("New {} Today:".format(type), style={'color': 'white'}),
                 html.H3("{:,.0f}".format(new_case_today), className='text-danger'),
-                html.H6("Peak Day:", style={'color':'white'}),
+                html.H6("Peak Day:", style={'color': 'white'}),
                 html.H3(peak_date, className='text-danger'),
                 html.H6("With {:,.0f} {}".format(peak_cases, type), style={'color': 'white'})
             ])
@@ -205,12 +155,11 @@ class Graphs:
         return panel
 
     def draw_statewise_map(self, df, row):
-
         df = df.iloc[:, [4, 5, 6, -1]]
-        df = df[df["Province_State"]==row]
+        df = df[df["Province_State"] == row]
         df.dropna(inplace=True)
         df["FIPS"] = df.FIPS.map(int).map("{:05}".format)
-        df.rename(columns={df.columns[-1]:"Cases"}, inplace=True)
+        df.rename(columns={df.columns[-1]: "Cases"}, inplace=True)
         fig = px.choropleth(df, geojson=self.counties, locations="FIPS", color=df.columns[-1],
                             projection="mercator", color_continuous_scale="Reds", hover_name=df.columns[1],
                             hover_data={
@@ -219,5 +168,5 @@ class Graphs:
                             }
                             )
         fig.update_geos(fitbounds="locations", visible=False)
-        fig.update_layout(margin={"r": 0, "l": 0, "b": 0, "t" : 0})
+        fig.update_layout(margin={"r": 0, "l": 0, "b": 0, "t": 0})
         return fig
