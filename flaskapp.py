@@ -63,10 +63,18 @@ app.layout = dbc.Container(fluid=True, children=[
                 dbc.Tab([
                     html.Br(), html.Br(),
                     html.H5("Daily Cases"),
-                    dcc.Graph(id="graph_daily_cases"),
+                    dcc.Loading(
+                            id="graph_daily_cases_loading",
+                            type="default",
+                            children=dcc.Graph(id="graph_daily_cases")
+                            ),
                     html.Br(), html.Br(),
                     html.H5("Total Cases"),
-                    dcc.Graph(id="graph_total_cases")
+                    dcc.Loading(
+                        id="graph_total_cases_loading",
+                        type="default",
+                        children=dcc.Graph(id="graph_total_cases")
+                    ),
                 ],
                     label="Projected Cases", tab_id="Cases",
                     tab_style={"border-color": "#f2f3f4", "border-style": "solid", "border-bottom-style": "none",
@@ -74,15 +82,29 @@ app.layout = dbc.Container(fluid=True, children=[
                 dbc.Tab([
                     html.Br(), html.Br(),
                     html.H5("Daily Deaths"),
-                    dcc.Graph(id="graph_daily_deaths"),
+                    dcc.Loading(
+                        id="graph_daily_deaths_loading",
+                        type="default",
+                        children=dcc.Graph(id="graph_daily_deaths")
+                    ),
                     html.Br(), html.Br(),
                     html.H5("Total Deaths"),
-                    dcc.Graph(id="graph_total_deaths")
+                    dcc.Loading(
+                        id="graph_total_deaths_loading",
+                        type="default",
+                        children=dcc.Graph(id="graph_total_deaths")
+                    ),
                 ],
                     label="Projected Deaths", tab_id="Deaths",
                     tab_style={"border-color": "#f2f3f4", "border-style": "solid", "border-bottom-style": "none",
                                "cursor": "pointer"}),
-                dbc.Tab([dcc.Graph(id="State_map", figure=Graphs.draw_total_state_map(preprocessed_df))],
+                dbc.Tab([
+                        dcc.Loading(
+                                id="loading-2",
+                                type="default",
+                                children=dcc.Graph(id="State_map", figure=Graphs.draw_total_state_map(preprocessed_df))
+                            )
+                ],
                         label="State Maps", tab_id="Maps",
                         tab_style={"border-color": "#f2f3f4", "border-style": "solid", "border-bottom-style": "none",
                                    "cursor": "pointer"})

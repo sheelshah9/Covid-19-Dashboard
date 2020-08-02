@@ -38,5 +38,5 @@ def run_predictions():
         xg_state_death = death_reg.XGBoost(row=state)
         xg_state_death.to_csv(pred_path + "death_{}_XGBoost.csv".format(state))
 
-        lstm_state_death = death_reg.LSTM(row=state, num_estimators=3)
+        lstm_state_death = death_reg.LSTM(row=state, num_estimators=1)
         lstm_state_death.to_csv(pred_path + "death_{}_LSTM.csv".format(state))
