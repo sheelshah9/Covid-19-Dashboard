@@ -4,7 +4,8 @@ A COVID-19 dashboard which forecasts cases and deaths for each state in the US. 
 Project website: http://www.sheel.ml
 
 ## Forecast Model
-The dashboard currently uses three different types of models: ARIMA, XGBoost and LSTM.
+The dashboard currently uses three different types of models: **ARIMA**, **XGBoost** and **LSTM**.
+![Alt Text](https://github.com/sheelshah9/Covid-19-Dashboard/blob/master/images/forecast_method.gif)
 
 ## Features
 #### 1) Cases  
