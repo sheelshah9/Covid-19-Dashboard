@@ -14,7 +14,7 @@ while True:
     for child in xml.findall("{http://www.w3.org/2005/Atom}entry"):
         id = child.find("{http://www.w3.org/2005/Atom}id").text.strip()
         title = child.find("{http://www.w3.org/2005/Atom}title").text.strip()
-        if title == "automated update":
+        if title.lower().strip() == "automated update":
             if default_id != id:
                 default_id = id
                 predict.run_predictions()
