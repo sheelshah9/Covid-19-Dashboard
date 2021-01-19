@@ -3,6 +3,8 @@
 A COVID-19 dashboard which forecasts cases and deaths for each state in the US. The dashboard also provides with a county-wise map for each state. The data and predictions are updated every day when the data at [JHU CSSE COVID-19 Data](https://github.com/CSSEGISandData/COVID-19) is updated.  
 Project website: http://www.sheel.ml
 
+Added hook for Jenkins.
+
 ## Forecast Model
 The dashboard currently uses three different types of models: **ARIMA**, **XGBoost** and **LSTM**.
 ![Alt Text](https://github.com/sheelshah9/Covid-19-Dashboard/blob/master/images/forecast_method.gif)
